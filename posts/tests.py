@@ -1,4 +1,4 @@
-from django.test import TestCase
+import pytest
 from django.contrib.auth.models import User
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
@@ -6,30 +6,29 @@ from django.utils import timezone
 from .models import Author, Post, Comment
 
 
-class AuthorModelTest(TestCase):
+@pytest.mark.django_db
+class TestAuthorModel:
     """Test cases for the Author model."""
 
-    def setUp(self):
-        """Set up test data."""
-        self.user = User.objects.create_user(
+    def test_author_creation_with_user(self):
+        """Test creating an author linked to a user."""
+        user = User.objects.create_user(
             username='testuser',
             email='testuser@example.com',
             password='testpass123'
         )
-
-    def test_author_creation_with_user(self):
-        """Test creating an author linked to a user."""
+        
         author = Author.objects.create(
             name='John Doe',
             email='john@example.com',
-            user=self.user
+            user=user
         )
         
-        self.assertEqual(author.name, 'John Doe')
-        self.assertEqual(author.email, 'john@example.com')
-        self.assertEqual(author.user, self.user)
-        self.assertIsNotNone(author.created_at)
-        self.assertIsNotNone(author.updated_at)
+        assert author.name == 'John Doe'
+        assert author.email == 'john@example.com'
+        assert author.user == user
+        assert author.created_at is not None
+        assert author.updated_at is not None
 
     def test_author_creation_without_user(self):
         """Test creating an author without linking to a user."""
@@ -38,9 +37,9 @@ class AuthorModelTest(TestCase):
             email='jane@example.com'
         )
         
-        self.assertEqual(author.name, 'Jane Smith')
-        self.assertEqual(author.email, 'jane@example.com')
-        self.assertIsNone(author.user)
+        assert author.name == 'Jane Smith'
+        assert author.email == 'jane@example.com'
+        assert author.user is None
 
     def test_author_email_unique_constraint(self):
         """Test that author email must be unique."""
@@ -49,7 +48,7 @@ class AuthorModelTest(TestCase):
             email='john@example.com'
         )
         
-        with self.assertRaises(IntegrityError):
+        with pytest.raises(IntegrityError):
             Author.objects.create(
                 name='Jane Doe',
                 email='john@example.com'
@@ -62,7 +61,7 @@ class AuthorModelTest(TestCase):
             email='john@example.com'
         )
         
-        self.assertEqual(str(author), 'John Doe')
+        assert str(author) == 'John Doe'
 
     def test_author_ordering(self):
         """Test that authors are ordered by name."""
@@ -71,314 +70,457 @@ class AuthorModelTest(TestCase):
         author_c = Author.objects.create(name='Charlie', email='charlie@example.com')
         
         authors = list(Author.objects.all())
-        self.assertEqual(authors[0], author_a)
-        self.assertEqual(authors[1], author_b)
-        self.assertEqual(authors[2], author_c)
+        assert authors[0] == author_a
+        assert authors[1] == author_b
+        assert authors[2] == author_c
 
 
-class PostModelTest(TestCase):
+@pytest.mark.django_db
+class TestPostModel:
     """Test cases for the Post model."""
-
-    def setUp(self):
-        """Set up test data."""
-        self.author = Author.objects.create(
-            name='Test Author',
-            email='author@example.com'
-        )
 
     def test_post_creation_with_defaults(self):
         """Test creating a post with default values."""
+        author = Author.objects.create(
+            name='Test Author',
+            email='author@example.com'
+        )
+        
         post = Post.objects.create(
             title='Test Post',
             content='This is test content.',
-            author=self.author
+            author=author
         )
         
-        self.assertEqual(post.title, 'Test Post')
-        self.assertEqual(post.content, 'This is test content.')
-        self.assertEqual(post.author, self.author)
-        self.assertEqual(post.status, Post.StatusChoices.DRAFT)
-        self.assertTrue(post.active)
-        self.assertIsNotNone(post.published_date)
-        self.assertIsNotNone(post.created_at)
-        self.assertIsNotNone(post.updated_at)
+        assert post.title == 'Test Post'
+        assert post.content == 'This is test content.'
+        assert post.author == author
+        assert post.status == Post.StatusChoices.DRAFT
+        assert post.active is True
+        assert post.published_date is not None
+        assert post.created_at is not None
+        assert post.updated_at is not None
 
     def test_post_creation_with_published_status(self):
         """Test creating a published post."""
+        author = Author.objects.create(
+            name='Test Author',
+            email='author@example.com'
+        )
+        
         post = Post.objects.create(
             title='Published Post',
             content='This is published content.',
-            author=self.author,
+            author=author,
             status=Post.StatusChoices.PUBLISHED
         )
         
-        self.assertEqual(post.status, Post.StatusChoices.PUBLISHED)
-        self.assertTrue(post.is_published)
+        assert post.status == Post.StatusChoices.PUBLISHED
+        assert post.is_published is True
 
     def test_post_creation_with_inactive_status(self):
         """Test creating an inactive post."""
+        author = Author.objects.create(
+            name='Test Author',
+            email='author@example.com'
+        )
+        
         post = Post.objects.create(
             title='Inactive Post',
             content='This is inactive content.',
-            author=self.author,
+            author=author,
             status=Post.StatusChoices.PUBLISHED,
             active=False
         )
         
-        self.assertEqual(post.status, Post.StatusChoices.PUBLISHED)
-        self.assertFalse(post.active)
-        self.assertFalse(post.is_published)
+        assert post.status == Post.StatusChoices.PUBLISHED
+        assert post.active is False
+        assert post.is_published is False
 
     def test_post_str_method(self):
         """Test the string representation of Post."""
+        author = Author.objects.create(
+            name='Test Author',
+            email='author@example.com'
+        )
+        
         post = Post.objects.create(
             title='Test Post Title',
             content='Test content',
-            author=self.author
+            author=author
         )
         
-        self.assertEqual(str(post), 'Test Post Title')
+        assert str(post) == 'Test Post Title'
 
     def test_post_is_published_property(self):
         """Test the is_published property logic."""
+        author = Author.objects.create(
+            name='Test Author',
+            email='author@example.com'
+        )
+        
         # Draft post should not be published
         draft_post = Post.objects.create(
             title='Draft Post',
             content='Draft content',
-            author=self.author,
+            author=author,
             status=Post.StatusChoices.DRAFT
         )
-        self.assertFalse(draft_post.is_published)
+        assert draft_post.is_published is False
         
         # Published and active post should be published
         published_post = Post.objects.create(
             title='Published Post',
             content='Published content',
-            author=self.author,
+            author=author,
             status=Post.StatusChoices.PUBLISHED,
             active=True
         )
-        self.assertTrue(published_post.is_published)
+        assert published_post.is_published is True
         
         # Published but inactive post should not be published
         inactive_post = Post.objects.create(
             title='Inactive Post',
             content='Inactive content',
-            author=self.author,
+            author=author,
             status=Post.StatusChoices.PUBLISHED,
             active=False
         )
-        self.assertFalse(inactive_post.is_published)
+        assert inactive_post.is_published is False
 
     def test_post_ordering(self):
         """Test that posts are ordered by published_date descending."""
+        author = Author.objects.create(
+            name='Test Author',
+            email='author@example.com'
+        )
+        
         post1 = Post.objects.create(
             title='First Post',
             content='First content',
-            author=self.author
+            author=author
         )
         post2 = Post.objects.create(
             title='Second Post',
             content='Second content',
-            author=self.author
+            author=author
         )
         
         posts = list(Post.objects.all())
-        self.assertEqual(posts[0], post2)
-        self.assertEqual(posts[1], post1)
+        assert posts[0] == post2
+        assert posts[1] == post1
 
     def test_post_cascade_delete_with_author(self):
         """Test that posts are deleted when author is deleted."""
+        author = Author.objects.create(
+            name='Test Author',
+            email='author@example.com'
+        )
+        
         post = Post.objects.create(
             title='Test Post',
             content='Test content',
-            author=self.author
+            author=author
         )
         
         post_id = post.id
-        self.author.delete()
+        author.delete()
         
-        with self.assertRaises(Post.DoesNotExist):
+        with pytest.raises(Post.DoesNotExist):
             Post.objects.get(id=post_id)
 
 
-class CommentModelTest(TestCase):
+@pytest.mark.django_db
+class TestCommentModel:
     """Test cases for the Comment model."""
 
-    def setUp(self):
-        """Set up test data."""
-        self.user = User.objects.create_user(
+    def test_comment_creation_with_user(self):
+        """Test creating a comment with a user."""
+        user = User.objects.create_user(
             username='commenter',
             email='commenter@example.com',
             password='testpass123'
         )
-        self.author = Author.objects.create(
+        author = Author.objects.create(
             name='Post Author',
             email='postauthor@example.com'
         )
-        self.post = Post.objects.create(
+        post = Post.objects.create(
             title='Test Post',
             content='Test post content',
-            author=self.author
-        )
-
-    def test_comment_creation_with_user(self):
-        """Test creating a comment with a user."""
-        comment = Comment.objects.create(
-            post=self.post,
-            content='This is a test comment.',
-            user=self.user
+            author=author
         )
         
-        self.assertEqual(comment.post, self.post)
-        self.assertEqual(comment.content, 'This is a test comment.')
-        self.assertEqual(comment.user, self.user)
-        self.assertIsNotNone(comment.created)
-        self.assertIsNotNone(comment.updated_at)
+        comment = Comment.objects.create(
+            post=post,
+            content='This is a test comment.',
+            user=user
+        )
+        
+        assert comment.post == post
+        assert comment.content == 'This is a test comment.'
+        assert comment.user == user
+        assert comment.created is not None
+        assert comment.updated_at is not None
 
     def test_comment_creation_without_user(self):
         """Test creating an anonymous comment."""
+        author = Author.objects.create(
+            name='Post Author',
+            email='postauthor@example.com'
+        )
+        post = Post.objects.create(
+            title='Test Post',
+            content='Test post content',
+            author=author
+        )
+        
         comment = Comment.objects.create(
-            post=self.post,
+            post=post,
             content='This is an anonymous comment.'
         )
         
-        self.assertEqual(comment.post, self.post)
-        self.assertEqual(comment.content, 'This is an anonymous comment.')
-        self.assertIsNone(comment.user)
+        assert comment.post == post
+        assert comment.content == 'This is an anonymous comment.'
+        assert comment.user is None
 
     def test_comment_str_method_with_user(self):
         """Test the string representation of Comment with user."""
-        comment = Comment.objects.create(
-            post=self.post,
-            content='Test comment',
-            user=self.user
+        user = User.objects.create_user(
+            username='commenter',
+            email='commenter@example.com',
+            password='testpass123'
+        )
+        author = Author.objects.create(
+            name='Post Author',
+            email='postauthor@example.com'
+        )
+        post = Post.objects.create(
+            title='Test Post',
+            content='Test post content',
+            author=author
         )
         
-        expected_str = f"Comment on '{self.post.title}' by {self.user.username}"
-        self.assertEqual(str(comment), expected_str)
+        comment = Comment.objects.create(
+            post=post,
+            content='Test comment',
+            user=user
+        )
+        
+        expected_str = f"Comment on '{post.title}' by {user.username}"
+        assert str(comment) == expected_str
 
     def test_comment_str_method_without_user(self):
         """Test the string representation of Comment without user."""
+        author = Author.objects.create(
+            name='Post Author',
+            email='postauthor@example.com'
+        )
+        post = Post.objects.create(
+            title='Test Post',
+            content='Test post content',
+            author=author
+        )
+        
         comment = Comment.objects.create(
-            post=self.post,
+            post=post,
             content='Anonymous comment'
         )
         
-        expected_str = f"Comment on '{self.post.title}' by Anonymous"
-        self.assertEqual(str(comment), expected_str)
+        expected_str = f"Comment on '{post.title}' by Anonymous"
+        assert str(comment) == expected_str
 
     def test_comment_author_name_property_with_user(self):
         """Test the author_name property with user."""
-        comment = Comment.objects.create(
-            post=self.post,
-            content='Test comment',
-            user=self.user
+        user = User.objects.create_user(
+            username='commenter',
+            email='commenter@example.com',
+            password='testpass123'
+        )
+        author = Author.objects.create(
+            name='Post Author',
+            email='postauthor@example.com'
+        )
+        post = Post.objects.create(
+            title='Test Post',
+            content='Test post content',
+            author=author
         )
         
-        self.assertEqual(comment.author_name, self.user.username)
+        comment = Comment.objects.create(
+            post=post,
+            content='Test comment',
+            user=user
+        )
+        
+        assert comment.author_name == user.username
 
     def test_comment_author_name_property_without_user(self):
         """Test the author_name property without user."""
+        author = Author.objects.create(
+            name='Post Author',
+            email='postauthor@example.com'
+        )
+        post = Post.objects.create(
+            title='Test Post',
+            content='Test post content',
+            author=author
+        )
+        
         comment = Comment.objects.create(
-            post=self.post,
+            post=post,
             content='Anonymous comment'
         )
         
-        self.assertEqual(comment.author_name, 'Anonymous')
+        assert comment.author_name == 'Anonymous'
 
     def test_comment_ordering(self):
         """Test that comments are ordered by created date descending."""
+        user = User.objects.create_user(
+            username='commenter',
+            email='commenter@example.com',
+            password='testpass123'
+        )
+        author = Author.objects.create(
+            name='Post Author',
+            email='postauthor@example.com'
+        )
+        post = Post.objects.create(
+            title='Test Post',
+            content='Test post content',
+            author=author
+        )
+        
         comment1 = Comment.objects.create(
-            post=self.post,
+            post=post,
             content='First comment',
-            user=self.user
+            user=user
         )
         comment2 = Comment.objects.create(
-            post=self.post,
+            post=post,
             content='Second comment',
-            user=self.user
+            user=user
         )
         
         comments = list(Comment.objects.all())
-        self.assertEqual(comments[0], comment2)
-        self.assertEqual(comments[1], comment1)
+        assert comments[0] == comment2
+        assert comments[1] == comment1
 
     def test_comment_cascade_delete_with_post(self):
         """Test that comments are deleted when post is deleted."""
+        user = User.objects.create_user(
+            username='commenter',
+            email='commenter@example.com',
+            password='testpass123'
+        )
+        author = Author.objects.create(
+            name='Post Author',
+            email='postauthor@example.com'
+        )
+        post = Post.objects.create(
+            title='Test Post',
+            content='Test post content',
+            author=author
+        )
+        
         comment = Comment.objects.create(
-            post=self.post,
+            post=post,
             content='Test comment',
-            user=self.user
+            user=user
         )
         
         comment_id = comment.id
-        self.post.delete()
+        post.delete()
         
-        with self.assertRaises(Comment.DoesNotExist):
+        with pytest.raises(Comment.DoesNotExist):
             Comment.objects.get(id=comment_id)
 
     def test_comment_user_set_null_on_delete(self):
         """Test that comment user is set to null when user is deleted."""
-        comment = Comment.objects.create(
-            post=self.post,
-            content='Test comment',
-            user=self.user
+        user = User.objects.create_user(
+            username='commenter',
+            email='commenter@example.com',
+            password='testpass123'
+        )
+        author = Author.objects.create(
+            name='Post Author',
+            email='postauthor@example.com'
+        )
+        post = Post.objects.create(
+            title='Test Post',
+            content='Test post content',
+            author=author
         )
         
-        self.user.delete()
+        comment = Comment.objects.create(
+            post=post,
+            content='Test comment',
+            user=user
+        )
+        
+        user.delete()
         comment.refresh_from_db()
         
-        self.assertIsNone(comment.user)
-        self.assertEqual(comment.author_name, 'Anonymous')
+        assert comment.user is None
+        assert comment.author_name == 'Anonymous'
 
 
-class ModelRelationshipTest(TestCase):
+@pytest.mark.django_db
+class TestModelRelationships:
     """Test cases for model relationships and related managers."""
 
-    def setUp(self):
-        """Set up test data."""
-        self.user = User.objects.create_user(
+    def test_author_posts_relationship(self):
+        """Test the reverse relationship from author to posts."""
+        user = User.objects.create_user(
             username='testuser',
             email='testuser@example.com',
             password='testpass123'
         )
-        self.author = Author.objects.create(
+        author = Author.objects.create(
             name='Test Author',
             email='author@example.com',
-            user=self.user
+            user=user
         )
-
-    def test_author_posts_relationship(self):
-        """Test the reverse relationship from author to posts."""
+        
         post1 = Post.objects.create(
             title='Post 1',
             content='Content 1',
-            author=self.author
+            author=author
         )
         post2 = Post.objects.create(
             title='Post 2',
             content='Content 2',
-            author=self.author
+            author=author
         )
         
-        author_posts = self.author.posts.all()
-        self.assertEqual(author_posts.count(), 2)
-        self.assertIn(post1, author_posts)
-        self.assertIn(post2, author_posts)
+        author_posts = author.posts.all()
+        assert author_posts.count() == 2
+        assert post1 in author_posts
+        assert post2 in author_posts
 
     def test_post_comments_relationship(self):
         """Test the reverse relationship from post to comments."""
+        user = User.objects.create_user(
+            username='testuser',
+            email='testuser@example.com',
+            password='testpass123'
+        )
+        author = Author.objects.create(
+            name='Test Author',
+            email='author@example.com',
+            user=user
+        )
+        
         post = Post.objects.create(
             title='Test Post',
             content='Test content',
-            author=self.author
+            author=author
         )
         
         comment1 = Comment.objects.create(
             post=post,
             content='Comment 1',
-            user=self.user
+            user=user
         )
         comment2 = Comment.objects.create(
             post=post,
@@ -386,35 +528,57 @@ class ModelRelationshipTest(TestCase):
         )
         
         post_comments = post.comments.all()
-        self.assertEqual(post_comments.count(), 2)
-        self.assertIn(comment1, post_comments)
-        self.assertIn(comment2, post_comments)
+        assert post_comments.count() == 2
+        assert comment1 in post_comments
+        assert comment2 in post_comments
 
     def test_user_author_profile_relationship(self):
         """Test the reverse relationship from user to author profile."""
-        self.assertEqual(self.user.author_profile.first(), self.author)
-        self.assertIn(self.author, self.user.author_profile.all())
+        user = User.objects.create_user(
+            username='testuser',
+            email='testuser@example.com',
+            password='testpass123'
+        )
+        author = Author.objects.create(
+            name='Test Author',
+            email='author@example.com',
+            user=user
+        )
+        
+        assert user.author_profile.first() == author
+        assert author in user.author_profile.all()
 
     def test_user_comments_relationship(self):
         """Test the reverse relationship from user to comments."""
+        user = User.objects.create_user(
+            username='testuser',
+            email='testuser@example.com',
+            password='testpass123'
+        )
+        author = Author.objects.create(
+            name='Test Author',
+            email='author@example.com',
+            user=user
+        )
+        
         post = Post.objects.create(
             title='Test Post',
             content='Test content',
-            author=self.author
+            author=author
         )
         
         comment1 = Comment.objects.create(
             post=post,
             content='Comment 1',
-            user=self.user
+            user=user
         )
         comment2 = Comment.objects.create(
             post=post,
             content='Comment 2',
-            user=self.user
+            user=user
         )
         
-        user_comments = self.user.comments.all()
-        self.assertEqual(user_comments.count(), 2)
-        self.assertIn(comment1, user_comments)
-        self.assertIn(comment2, user_comments)
+        user_comments = user.comments.all()
+        assert user_comments.count() == 2
+        assert comment1 in user_comments
+        assert comment2 in user_comments
