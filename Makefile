@@ -6,7 +6,7 @@ help:
 	@echo "  make start         - Start the application with hot reload"
 	@echo "  make stop          - Stop all containers"
 	@echo "  make build         - Build Docker images"
-	@echo "  make test          - Run test suite"
+	@echo "  make test          - Run test suite with pytest"
 	@echo "  make restart       - Restart the application"
 	@echo "  make makemigrations - Create database migrations"
 	@echo "  make migrate       - Apply database migrations"
@@ -32,10 +32,10 @@ build:
 	@echo "Building Docker images..."
 	@docker-compose build --no-cache
 
-# Run test suite
+# Run test suite with pytest
 test:
-	@echo "Running test suite..."
-	@docker exec django-comments-backend-1 python manage.py test
+	@echo "Running pytest with verbose output..."
+	@docker exec django-comments-backend-1 pytest -v
 
 # Restart the application
 restart:
