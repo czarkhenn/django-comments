@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from .models import Author, Post, Comment
+from posts.models import Author, Post, Comment
 
 
 @pytest.mark.django_db
