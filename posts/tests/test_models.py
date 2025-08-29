@@ -327,52 +327,9 @@ class TestCommentModel:
             content='Anonymous comment'
         )
         
-        expected_str = f"Comment on '{post.title}' by Anonymous"
+        expected_str = f"Comment on '{post.title}' None"
         assert str(comment) == expected_str
 
-    def test_comment_author_name_property_with_user(self):
-        """Test the author_name property with user."""
-        user = User.objects.create_user(
-            username='commenter',
-            email='commenter@example.com',
-            password='testpass123'
-        )
-        author = Author.objects.create(
-            name='Post Author',
-            email='postauthor@example.com'
-        )
-        post = Post.objects.create(
-            title='Test Post',
-            content='Test post content',
-            author=author
-        )
-        
-        comment = Comment.objects.create(
-            post=post,
-            content='Test comment',
-            user=user
-        )
-        
-        assert comment.author_name == user.username
-
-    def test_comment_author_name_property_without_user(self):
-        """Test the author_name property without user."""
-        author = Author.objects.create(
-            name='Post Author',
-            email='postauthor@example.com'
-        )
-        post = Post.objects.create(
-            title='Test Post',
-            content='Test post content',
-            author=author
-        )
-        
-        comment = Comment.objects.create(
-            post=post,
-            content='Anonymous comment'
-        )
-        
-        assert comment.author_name == 'Anonymous'
 
     def test_comment_ordering(self):
         """Test that comments are ordered by created date descending."""
@@ -462,7 +419,6 @@ class TestCommentModel:
         comment.refresh_from_db()
         
         assert comment.user is None
-        assert comment.author_name == 'Anonymous'
 
 
 @pytest.mark.django_db

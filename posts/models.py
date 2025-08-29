@@ -73,6 +73,9 @@ class Post(models.Model):
     def is_published(self):
         return self.status == self.StatusChoices.PUBLISHED and self.active
 
+    @property
+    def author_name(self):
+        return self.author.name if self.author.name else None
 
 class Comment(models.Model):
     """
@@ -103,9 +106,5 @@ class Comment(models.Model):
         ]
 
     def __str__(self):
-        user_info = f"by {self.user.username}" if self.user else "by Anonymous"
+        user_info = f"by {self.user.username}" if self.user else None
         return f"Comment on '{self.post.title}' {user_info}"
-
-    @property
-    def author_name(self):
-        return self.user.username if self.user else 'Anonymous'

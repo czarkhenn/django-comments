@@ -53,7 +53,7 @@ class PostAdmin(admin.ModelAdmin):
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
     
-    list_display = ['get_post_title', 'get_author_name', 'user', 'created', 'content_preview']
+    list_display = ['get_post_title', 'user', 'created', 'content_preview']
     list_filter = ['created', 'updated_at', 'post__status']
     search_fields = ['content', 'post__title', 'user__username']
     readonly_fields = ['created', 'updated_at']
@@ -80,10 +80,7 @@ class CommentAdmin(admin.ModelAdmin):
     get_post_title.short_description = 'Post'
     get_post_title.admin_order_field = 'post__title'
     
-    def get_author_name(self, obj):
-        """Display comment author name in list view."""
-        return obj.author_name
-    get_author_name.short_description = 'Author'
+
     
     def content_preview(self, obj):
         """Display content preview in list view."""
