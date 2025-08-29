@@ -42,7 +42,7 @@ class PostListAPIView(generics.ListAPIView):
     - search: Search in title and author name (partial match)
     """
     serializer_class = PostListSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = PostFilter
     search_fields = ['title', 'author__name']
@@ -59,7 +59,7 @@ class PostDetailAPIView(generics.RetrieveAPIView):
     Retrieve a specific post with its comments.
     """
     serializer_class = PostDetailSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         """Return only active posts."""

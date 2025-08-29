@@ -19,7 +19,6 @@ class TestPostListAPI:
         
         Test that post list API only shows active posts.
         """
-        api_client.force_authenticate(user=user)
         url = reverse('posts:post_list')
         response = api_client.get(url)
         
@@ -31,7 +30,6 @@ class TestPostListAPI:
 
     def test_post_list_includes_required_fields(self, api_client, user, active_post):
         """Test that post list includes title, content, published_date, and author_name."""
-        api_client.force_authenticate(user=user)
         url = reverse('posts:post_list')
         response = api_client.get(url)
         
@@ -270,7 +268,6 @@ class TestPostDetailAPI:
     
     def test_post_detail_with_comments(self, api_client, user, active_post, comment_on_active_post, anonymous_comment):
         """Test post detail shows post with nested comments."""
-        api_client.force_authenticate(user=user)
         url = reverse('posts:post_detail', kwargs={'pk': active_post.pk})
         response = api_client.get(url)
         
@@ -286,7 +283,6 @@ class TestPostDetailAPI:
         
     def test_post_detail_inactive_post_not_accessible(self, api_client, user, inactive_post):
         """Test that inactive posts are not accessible via detail API."""
-        api_client.force_authenticate(user=user)
         url = reverse('posts:post_detail', kwargs={'pk': inactive_post.pk})
         response = api_client.get(url)
         
@@ -294,7 +290,6 @@ class TestPostDetailAPI:
         
     def test_post_detail_returns_full_user_object_when_author_has_user(self, api_client, user, active_post):
         """Test that post detail returns full author object with nested user when author has associated user."""
-        api_client.force_authenticate(user=user)
         url = reverse('posts:post_detail', kwargs={'pk': active_post.pk})
         response = api_client.get(url)
         
@@ -333,7 +328,6 @@ class TestPostDetailAPI:
         
     def test_post_detail_returns_null_user_when_author_has_no_user(self, api_client, user):
         """Test that post detail returns author object with null user when author has no associated user."""
-        api_client.force_authenticate(user=user)
         # Create an author without an associated user
         author_without_user = Author.objects.create(
             name='Orphaned Author',
@@ -563,6 +557,29 @@ class TestCommentCreateAPI:
         data = {
             'post': active_post.id,
             'content': 'This is an anonymous comment.'
+        }
+        
+        response = api_client.post(url, data)
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        
+        # Verify comment was created with user=None for anonymous users
+        comment = Comment.objects.get(content=data['content'])
+        assert comment.content == data['content']
+        assert comment.user is None  # Anonymous comment should have user=None
+        assert comment.post == active_post
+        
+    def test_create_comment_as_anonymous_user_on_a_post_succeeds(self, api_client, active_post):
+        """
+        Test that anonymous users can successfully create comments on posts.
+        
+        This test verifies that non-authenticated users can comment on active posts
+        and that the comment is created with user=None.
+        """
+        url = reverse('posts:comment_create')
+        data = {
+            'post': active_post.id,
+            'content': 'This is an anonymous comment on a post.'
         }
         
         response = api_client.post(url, data)
